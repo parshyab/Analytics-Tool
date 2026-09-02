@@ -1,15 +1,5 @@
 import type { ReactNode } from "react";
-
-type PageLayoutProps = {
-  title?: string;
-  subtitle?: string;
-  eyebrow?: string;
-  actions?: ReactNode;
-  children: ReactNode;
-  className?: string;
-  narrow?: boolean;
-  compact?: boolean;
-};
+import { IconLock } from "./ui/Icons";
 
 export function PageLayout({
   title,
@@ -20,7 +10,16 @@ export function PageLayout({
   className = "",
   narrow = false,
   compact = false,
-}: PageLayoutProps) {
+}: {
+  title?: string;
+  subtitle?: string;
+  eyebrow?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  narrow?: boolean;
+  compact?: boolean;
+}) {
   return (
     <div
       className={`page ${narrow ? "page-narrow" : ""} ${compact ? "page-compact" : ""} ${className}`.trim()}
@@ -66,10 +65,23 @@ export function PageSection({
   );
 }
 
-export function EmptyPanel({ icon, title, body }: { icon?: string; title: string; body: string }) {
+export function EmptyPanel({
+  icon,
+  title,
+  body,
+}: {
+  icon?: string;
+  title: string;
+  body: string;
+}) {
+  const showLock = icon === "🔒" || icon === "lock";
   return (
     <div className="empty-panel">
-      {icon && <div className="empty-panel-icon">{icon}</div>}
+      {(icon || showLock) && (
+        <div className="empty-panel-icon">
+          {showLock ? <IconLock size={28} /> : icon}
+        </div>
+      )}
       <h4>{title}</h4>
       <p>{body}</p>
     </div>

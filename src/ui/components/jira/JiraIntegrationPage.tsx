@@ -5,9 +5,20 @@ import { JiraSettings } from "./JiraSettings";
 import { PageLayout } from "../PageLayout";
 import { usePluginState } from "../../hooks";
 
-export function JiraIntegrationPage() {
+export function JiraIntegrationPage({ embedded = false }: { embedded?: boolean }) {
   const { jiraBoard } = usePluginState();
   const hasTickets = jiraBoard.issues.length > 0;
+
+  const content = (
+    <>
+      <JiraBoardSyncPanel />
+      {hasTickets && <JiraIdentityMapping />}
+      {hasTickets && <JiraDesignerWorkloadView workloads={jiraBoard.workloads} />}
+      <JiraSettings />
+    </>
+  );
+
+  if (embedded) return content;
 
   return (
     <PageLayout
@@ -19,10 +30,7 @@ export function JiraIntegrationPage() {
       }
       eyebrow="Jira"
     >
-      <JiraBoardSyncPanel />
-      {hasTickets && <JiraIdentityMapping />}
-      {hasTickets && <JiraDesignerWorkloadView workloads={jiraBoard.workloads} />}
-      <JiraSettings />
+      {content}
     </PageLayout>
   );
 }

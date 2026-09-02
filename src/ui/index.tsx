@@ -2,8 +2,8 @@ import { createRoot } from "react-dom/client";
 import { App } from "./App";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { PluginProvider } from "./hooks";
+import "./tokens.css";
 import "./styles.css";
-import "./dashboard.css";
 
 function mountApp() {
   const rootElement = document.getElementById("root");
