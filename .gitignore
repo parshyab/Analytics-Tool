@@ -1,0 +1,11 @@
+dist/
+node_modules/
+.env
+.env.local
+.env.*.local
+data/jira-cache.json
+data/design-system-store.json
+data/productivity-store.json
+data/reports/
+*.log
+.DS_Store

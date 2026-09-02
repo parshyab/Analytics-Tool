@@ -1,0 +1,100 @@
+name: LUMI stakeholder reports
+
+on:
+  # Daily check — send only when a period boundary matches
+  schedule:
+    - cron: "30 3 * * *"
+  workflow_dispatch:
+    inputs:
+      period:
+        description: Report period
+        required: true
+        default: weekly
+        type: choice
+        options:
+          - weekly
+          - monthly
+          - quarterly
+      dry_run:
+        description: Write files only (no SMTP)
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Resolve period
+        id: period
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "period=${{ inputs.period }}" >> "$GITHUB_OUTPUT"
+            echo "dry_run=${{ inputs.dry_run }}" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          DAY=$(date -u +%d)
+          MONTH=$(date -u +%m)
+          DOW=$(date -u +%u) # 1=Mon … 7=Sun
+
+          # Prefer the coarsest cadence on overlapping days (e.g. 1 Apr Monday → quarterly only)
+          if [ "$DAY" = "01" ] && [[ "$MONTH" =~ ^(01|04|07|10)$ ]]; then
+            echo "period=quarterly" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [ "$DAY" = "01" ]; then
+            echo "period=monthly" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          elif [ "$DOW" = "1" ]; then
+            echo "period=weekly" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "period=none" >> "$GITHUB_OUTPUT"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "dry_run=false" >> "$GITHUB_OUTPUT"
+
+      - name: Install
+        if: steps.period.outputs.skip != 'true'
+        run: npm ci
+
+      - name: Send report
+        if: steps.period.outputs.skip != 'true'
+        env:
+          LUMI_REPORT_EMAILS: ${{ secrets.LUMI_REPORT_EMAILS }}
+          LUMI_REPORT_DRY_RUN: ${{ steps.period.outputs.dry_run }}
+          LUMI_SMTP_HOST: ${{ secrets.LUMI_SMTP_HOST }}
+          LUMI_SMTP_PORT: ${{ secrets.LUMI_SMTP_PORT }}
+          LUMI_SMTP_SECURE: ${{ secrets.LUMI_SMTP_SECURE }}
+          LUMI_SMTP_USER: ${{ secrets.LUMI_SMTP_USER }}
+          LUMI_SMTP_PASS: ${{ secrets.LUMI_SMTP_PASS }}
+          LUMI_SMTP_FROM: ${{ secrets.LUMI_SMTP_FROM }}
+        run: |
+          if [ -z "$LUMI_REPORT_EMAILS" ]; then
+            if [ -n "${LUMI_REPORT_RECIPIENT_OPTIONS:-}" ]; then
+              export LUMI_REPORT_EMAILS="$LUMI_REPORT_RECIPIENT_OPTIONS"
+            else
+              echo "No LUMI_REPORT_EMAILS secret — set GitHub secret or LUMI_REPORT_RECIPIENT_OPTIONS in repo."
+              exit 0
+            fi
+          fi
+          npm run report:send -- --period ${{ steps.period.outputs.period }} --to "$LUMI_REPORT_EMAILS" --live
+
+      - name: Upload report artifacts
+        if: steps.period.outputs.skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumi-report-${{ steps.period.outputs.period }}
+          path: data/reports/
+          if-no-files-found: ignore

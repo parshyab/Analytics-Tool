@@ -1,0 +1,22 @@
+{
+  "name": "LUMI Analytics",
+  "id": "lumi-analytics",
+  "api": "1.0.0",
+  "main": "dist/main.js",
+  "ui": "dist/ui.html",
+  "editorType": ["figma"],
+  "permissions": ["currentuser"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": [
+      "https://nykmage.atlassian.net"
+    ],
+    "devAllowedDomains": [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:8787",
+      "http://localhost:8788"
+    ],
+    "reasoning": "LUMI Analytics optionally connects to Jira Cloud to fetch UX project tickets and map design work to Jira tickets for productivity reporting. Env-cache mode is preferred for development."
+  }
+}
